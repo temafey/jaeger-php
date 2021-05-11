@@ -17,16 +17,20 @@ namespace Jaeger;
 
 use Jaeger\Sampler\Sampler;
 use OpenTracing\Exceptions\UnsupportedFormat;
-use OpenTracing\SpanContext;
+use OpenTracing\Scope as ScopeInterface;
+use OpenTracing\ScopeManager as ScopeManagerInterface;
+use OpenTracing\Span as SpanInterface;
+use OpenTracing\SpanContext as SpanContextInterface;
 use OpenTracing\Formats;
-use OpenTracing\Tracer;
+use OpenTracing\Tracer as TracerInterface;
 use Jaeger\Reporter\Reporter;
 use OpenTracing\StartSpanOptions;
 use OpenTracing\Reference;
 use Jaeger\Propagator\Propagator;
+use OpenTracing\UnsupportedFormatException;
 
-class Jaeger implements Tracer{
-
+class Jaeger implements TracerInterface
+{
     private $reporter = null;
 
     private $sampler = null;
@@ -48,21 +52,21 @@ class Jaeger implements Tracer{
     /** @var Propagator|null */
     public $propagator = null;
 
-    public function __construct($serverName = '', Reporter $reporter, Sampler $sampler,
-                                ScopeManager $scopeManager){
-
+    public function __construct(
+        $serverName = '',
+        Reporter $reporter,
+        Sampler $sampler,
+        ScopeManagerInterface $scopeManager
+    ){
         $this->reporter = $reporter;
-
         $this->sampler = $sampler;
-
         $this->scopeManager = $scopeManager;
-
         $this->setTags($this->sampler->getTags());
         $this->setTags($this->getEnvTags());
 
-        if($serverName == '') {
+        if ($serverName === '') {
             $this->serverName = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'unknow server';
-        }else{
+        } else {
             $this->serverName = $serverName;
         }
     }
@@ -71,8 +75,9 @@ class Jaeger implements Tracer{
     /**
      * @param array $tags  key => value
      */
-    public function setTags(array $tags = []){
-        if(!empty($tags)) {
+    public function setTags(array $tags = [])
+    {
+        if (!empty($tags)) {
             $this->tags = array_merge($this->tags, $tags);
         }
     }
@@ -80,18 +85,20 @@ class Jaeger implements Tracer{
 
     /**
      * init span info
+     *
      * @param string $operationName
      * @param array $options
-     * @return Span
+     *
+     * @return SpanInterface
      */
-    public function startSpan($operationName, $options = []){
-
+    public function startSpan($operationName, $options = []): SpanInterface
+    {
         if (!($options instanceof StartSpanOptions)) {
             $options = StartSpanOptions::create($options);
         }
-
         $parentSpan = $this->getParentSpanContext($options);
-        if($parentSpan == null || !$parentSpan->traceIdLow){
+
+        if ($parentSpan == null || !$parentSpan->traceIdLow){
             $low = $this->generateId();
             $spanId = $low;
             $flags = $this->sampler->IsSampled();
@@ -100,10 +107,15 @@ class Jaeger implements Tracer{
             if($this->gen128bit == true){
                 $spanContext->traceIdHigh = $this->generateId();
             }
-        }else{
-            $spanContext = new \Jaeger\SpanContext($this->generateId(),
-                $parentSpan->spanId, $parentSpan->flags, $parentSpan->baggage, 0);
+        } else{
+            $spanContext = new \Jaeger\SpanContext(
+                $this->generateId(),
+                $parentSpan->spanId,
+                $parentSpan->flags,
+                $parentSpan->baggage,
+                0);
             $spanContext->traceIdLow = $parentSpan->traceIdLow;
+
             if($parentSpan->traceIdHigh){
                 $spanContext->traceIdHigh = $parentSpan->traceIdHigh;
             }
@@ -111,73 +123,77 @@ class Jaeger implements Tracer{
 
         $startTime = $options->getStartTime() ? intval($options->getStartTime() * 1000000) : null;
         $span = new Span($operationName, $spanContext, $options->getReferences(), $startTime);
-        if(!empty($options->getTags())) {
+
+        if (!empty($options->getTags())) {
             foreach ($options->getTags() as $k => $tag) {
                 $span->setTag($k, $tag);
             }
         }
-        if($spanContext->isSampled() == 1) {
+        if ($spanContext->isSampled() == 1) {
             $this->spans[] = $span;
         }
 
         return $span;
     }
 
-
-    public function setPropagator(Propagator $propagator){
+    public function setPropagator(Propagator $propagator)
+    {
         $this->propagator = $propagator;
     }
 
-
     /**
-     * 注入
-     * @param SpanContext $spanContext
-     * @param string $format
-     * @param $carrier
+     * @inheritdoc
      */
-    public function inject(SpanContext $spanContext, $format, &$carrier){
-        if($format == Formats\TEXT_MAP){
+    public function inject(SpanContextInterface $spanContext, string $format, &$carrier): void
+    {
+        if ($format == Formats\TEXT_MAP) {
             $this->propagator->inject($spanContext, $format, $carrier);
-        }else{
-            throw UnsupportedFormat::forFormat($format);
+        } else {
+            throw UnsupportedFormatException::forFormat($format);
         }
     }
 
 
     /**
-     * 提取
-     * @param string $format
-     * @param $carrier
+     * @inheritdoc
      */
-    public function extract($format, $carrier){
-        if($format == Formats\TEXT_MAP){
+    public function extract(string $format, $carrier): ?SpanContextInterface
+    {
+        if ($format == Formats\TEXT_MAP) {
             return $this->propagator->extract($format, $carrier);
         }else{
-            throw UnsupportedFormat::forFormat($format);
+            throw UnsupportedFormatException::forFormat($format);
         }
     }
 
-
-    public function getSpans(){
+    public function getSpans()
+    {
         return $this->spans;
     }
 
-
-    public function reportSpan(){
-        if($this->spans) {
+    public function reportSpan()
+    {
+        if ($this->spans) {
             $this->reporter->report($this);
             $this->spans = [];
         }
     }
 
-
-    public function getScopeManager(){
+    /**
+     * @inheritdoc
+     */
+    public function getScopeManager(): ScopeManagerInterface
+    {
         return $this->scopeManager;
     }
 
-
-    public function getActiveSpan(){
+    /**
+     * @inheritdoc
+     */
+    public function getActiveSpan(): ?SpanInterface
+    {
         $activeScope = $this->getScopeManager()->getActive();
+        
         if ($activeScope === null) {
             return null;
         }
@@ -185,27 +201,28 @@ class Jaeger implements Tracer{
         return $activeScope->getSpan();
     }
 
-
-    public function startActiveSpan($operationName, $options = []){
+    /**
+     * @inheritdoc
+     */
+    public function startActiveSpan($operationName, $options = []): Scope
+    {
         if (!$options instanceof StartSpanOptions) {
             $options = StartSpanOptions::create($options);
         }
-
         $parentSpan = $this->getParentSpanContext($options);
+        
         if ($parentSpan === null && $this->getActiveSpan() !== null) {
             $parentContext = $this->getActiveSpan()->getContext();
             $options = $options->withParent($parentContext);
         }
-
         $span = $this->startSpan($operationName, $options);
+        
         return $this->getScopeManager()->activate($span, $options->shouldFinishSpanOnClose());
     }
-
 
     private function getParentSpanContext(StartSpanOptions $options)
     {
         $references = $options->getReferences();
-
         $parentSpan = null;
 
         foreach ($references as $ref) {
@@ -227,11 +244,13 @@ class Jaeger implements Tracer{
         return null;
     }
 
-
-    public function getEnvTags(){
+    public function getEnvTags()
+    {
         $tags = [];
-        if(isset($_SERVER['JAEGER_TAGS']) && $_SERVER['JAEGER_TAGS'] != ''){
+
+        if (isset($_SERVER['JAEGER_TAGS']) && $_SERVER['JAEGER_TAGS'] != '') {
             $envTags = explode(',', $_SERVER['JAEGER_TAGS']);
+            
             foreach ($envTags as $envK => $envTag){
                 list($key, $value) = explode('=', $envTag);
                 $tags[$key] = $value;
@@ -242,7 +261,8 @@ class Jaeger implements Tracer{
     }
 
 
-    public function gen128bit(){
+    public function gen128bit()
+    {
         $this->gen128bit = true;
     }
 
@@ -250,13 +270,15 @@ class Jaeger implements Tracer{
     /**
      * 结束,发送信息到jaeger
      */
-    public function flush(){
+    public function flush(): void
+    {
         $this->reportSpan();
         $this->reporter->close();
     }
 
 
-    private function generateId(){
+    private function generateId()
+    {
         return microtime(true) * 10000 . rand(10000, 99999);
     }
 }
