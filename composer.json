@@ -7,7 +7,7 @@
     "opentracing"
   ],
   "license": "Apache-2.0",
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "require": {
     "php": "^8.0",
     "packaged/thrift": "^0.13",
