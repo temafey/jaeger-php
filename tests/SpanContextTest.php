@@ -1,99 +1,85 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
 
-namespace tests;
+declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
+namespace JagerPhp\Tests;
+
 use Jaeger\SpanContext;
+use PHPUnit\Framework\TestCase;
 
 class SpanContextTest extends TestCase
 {
-
-
-    public function getSpanContext(){
+    public function getSpanContext(): SpanContext
+    {
         return new SpanContext(1, 1, 1, null, 1);
     }
 
-
-    public function testNew(){
+    public function testNew(): void
+    {
         $spanContext = $this->getSpanContext();
-        $this->assertInstanceOf(SpanContext::class, $spanContext);
+        self::assertInstanceOf(SpanContext::class, $spanContext);
     }
 
-
-    public function testWithBaggageItem(){
+    public function testWithBaggageItem(): void
+    {
         $spanContext = $this->getSpanContext();
         $res = $spanContext->withBaggageItem('version', '2.0.0');
-        $this->assertTrue($res);
+        self::assertEquals($res->getBaggageItem('version'), '2.0.0');
     }
 
-
-    public function testGetBaggageItem(){
+    public function testGetBaggageItem(): void
+    {
         $spanContext = $this->getSpanContext();
         $res = $spanContext->withBaggageItem('version', '2.0.0');
-
-        $version = $spanContext->getBaggageItem('version');
-        $this->assertTrue($res == $version);
+        self::assertEquals(
+            $spanContext->getBaggageItem('version'),
+            $res->getBaggageItem('version')
+        );
 
         $service = $spanContext->getBaggageItem('service');
-        $this->assertNull($service);
+        self::assertNull($service);
     }
 
-
-    public function testBuildString(){
+    public function testBuildString(): void
+    {
         $spanContext = $this->getSpanContext();
         $spanContext->traceIdLow = 1;
-        $this->assertTrue($spanContext->buildString() == '1:1:1:1');
+        self::assertTrue($spanContext->buildString() == '1:1:1:1');
 
         $spanContext->traceIdHigh = 1;
-        $this->assertTrue($spanContext->buildString() == '10000000000000001:1:1:1');
+        self::assertTrue($spanContext->buildString() == '10000000000000001:1:1:1');
     }
 
-
-    public function testSpanIdToString(){
+    public function testSpanIdToString(): void
+    {
         $spanContext = $this->getSpanContext();
-        $this->assertTrue($spanContext->spanIdToString() == '1');
+        self::assertTrue($spanContext->spanIdToString() == '1');
 
         $spanContext->spanId = "111111";
-        $this->assertTrue($spanContext->spanIdToString() == '1b207');
+        self::assertTrue($spanContext->spanIdToString() == '1b207');
     }
 
-
-    public function testTraceIdLowToString(){
+    public function testTraceIdLowToString()
+    {
         $spanContext = $this->getSpanContext();
         $spanContext->traceIdLow = "111111";
-        $this->assertTrue($spanContext->traceIdLowToString() == '1b207');
+        self::assertTrue($spanContext->traceIdLowToString() == '1b207');
 
         $spanContext->traceIdHigh = "111111";
-        $this->assertTrue($spanContext->traceIdLowToString() == '1b207000000000001b207');
+        self::assertTrue($spanContext->traceIdLowToString() == '1b207000000000001b207');
     }
 
-
-    public function testTraceIdToString(){
+    public function testTraceIdToString(): void
+    {
         $spanContext = $this->getSpanContext();
         $spanContext->traceIdToString('1b207000000000001b207');
-        $this->assertTrue($spanContext->traceIdLow == '111111');
-        $this->assertTrue($spanContext->traceIdHigh == '1954685383581106176');
+        self::assertTrue($spanContext->traceIdLow == '111111');
+        self::assertTrue($spanContext->traceIdHigh == '1954685383581106176');
 
         $spanContext->traceIdLow = null;
         $spanContext->traceIdHigh = null;
         $spanContext->traceIdToString('1b207');
-        $this->assertTrue($spanContext->traceIdLow == '111111');
-        $this->assertTrue(!$spanContext->traceIdHigh);
+        self::assertTrue($spanContext->traceIdLow == '111111');
+        self::assertTrue(!$spanContext->traceIdHigh);
     }
-
-
-
 }

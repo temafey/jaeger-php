@@ -1,21 +1,21 @@
 {
-  "name":              "micro-module/jaeger-php",
-  "description":       "php client for jaeger",
-  "keywords":          ["jaeger","trace","opentracing"],
-  "license":           "Apache-2.0",
-  "minimum-stability": "stable",
-  "require":           {
-    "php": "^7.1 || ^8.0",
-    "packaged/thrift" : "^0.13",
-    "opentracing/opentracing" : "^1.0"
-  },
-  "authors": [
-    {
-      "name": "jukylin",
-      "email": "742161455@qq.com"
-    }
+  "name": "micro-module/jaeger-php",
+  "description": "php client for jaeger",
+  "keywords": [
+    "jaeger",
+    "trace",
+    "opentracing"
   ],
-  "autoload":          {
+  "license": "Apache-2.0",
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^8.0",
+    "packaged/thrift": "^0.13",
+    "opentracing/opentracing": "~1.0.1",
+    "ext-sockets": "*",
+    "ext-json": "*"
+  },
+  "autoload": {
     "psr-4": {
       "Jaeger\\": "src\\Jaeger"
     },
@@ -26,8 +26,13 @@
   "scripts": {
     "test": "./vendor/bin/phpunit"
   },
+  "autoload-dev": {
+    "psr-4": {
+      "JagerPhp\\Tests\\": "tests/"
+    }
+  },
   "require-dev": {
-    "phpunit/phpunit": "^5",
+    "phpunit/phpunit": "^9.5",
     "php-coveralls/php-coveralls": "^1.0"
   }
 }

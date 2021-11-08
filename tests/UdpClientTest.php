@@ -1,71 +1,66 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
 
-namespace tests;
+declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
-use Jaeger\UdpClient;
+namespace JagerPhp\Tests;
+
 use Jaeger\Thrift\AgentClient;
+use Jaeger\UdpClient;
+use PHPUnit\Framework\TestCase;
 
 class UdpClientTest extends TestCase
 {
-    public $udpClient = null;
+    public ?UdpClient $udpClient;
 
-    public $agentClient = null;
+    public ?AgentClient $agentClient;
 
-    public function setUp(){
+    public function setUp(): void
+    {
         $this->agentClient = $this->createMock(AgentClient::class);
         $this->udpClient = new UdpClient('localhost:6831', $this->agentClient);
     }
 
-
-    public function testIsOpen(){
-        $this->assertTrue($this->udpClient->isOpen());
+    public function testIsOpen(): void
+    {
+        self::assertTrue($this->udpClient->isOpen());
     }
 
-
-    public function testEmitBatch(){
+    public function testEmitBatch(): void
+    {
 
         $this->agentClient->expects($this->once())->method('buildThrift')
-            ->willReturn(['len'=> 3 , 'thriftStr' => 123]);
-        $batch = ['thriftProcess' => ''
-            , 'thriftSpans' => ''];
+            ->willReturn(['len' => 3, 'thriftStr' => 123]);
+        $batch = [
+            'thriftProcess' => ''
+            , 'thriftSpans' => ''
+        ];
 
-        $this->assertTrue($this->udpClient->emitBatch($batch));
+        self::assertTrue($this->udpClient->emitBatch($batch));
     }
 
-
-    public function testEmitBatchFalse(){
-        $batch = ['thriftProcess' => ''
-            , 'thriftSpans' => ''];
+    public function testEmitBatchFalse(): void
+    {
+        $batch = [
+            'thriftProcess' => ''
+            , 'thriftSpans' => ''
+        ];
 
         $this->agentClient->expects($this->any())->method('buildThrift')
             ->willReturn(['thriftStr' => 123]);
 
-        $this->assertFalse($this->udpClient->emitBatch($batch));
+        self::assertFalse($this->udpClient->emitBatch($batch));
 
         $this->udpClient->close();
         $this->agentClient->expects($this->any())->method('buildThrift')
-            ->willReturn(['len'=> 3 , 'thriftStr' => 123]);
+            ->willReturn(['len' => 3, 'thriftStr' => 123]);
 
 
-        $this->assertFalse($this->udpClient->emitBatch($batch));
+        self::assertFalse($this->udpClient->emitBatch($batch));
     }
 
-    public function testClose(){
+    public function testClose(): void
+    {
         $this->udpClient->close();
-        $this->assertFalse($this->udpClient->isOpen());
+        self::assertFalse($this->udpClient->isOpen());
     }
 }

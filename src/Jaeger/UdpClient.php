@@ -1,76 +1,63 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
+declare(strict_types=1);
 
 namespace Jaeger;
 
+use Exception;
 use Jaeger\Thrift\AgentClient;
 
 /**
- * send thrift to jaeger-agent
- * Class UdpClient
- * @package Jaeger
+ * Send Thrift to jaeger-agent
  */
+class UdpClient
+{
+    private string $host;
 
-class UdpClient{
+    private int $post;
 
-    private $host = '';
+    private $socket;
 
-    private $post = '';
+    private AgentClient $agentClient;
 
-    private $socket = '';
-
-    private $agentClient = null;
-
-    public function __construct($hostPost, AgentClient $agentClient){
-        list($this->host, $this->post) = explode(":", $hostPost);
+    public function __construct($hostPost, AgentClient $agentClient)
+    {
+        list($host, $post) = explode(":", $hostPost);
+        $this->host = $host;
+        $this->post = (int)$post;
         $this->agentClient = $agentClient;
         $this->socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
     }
 
-
-    /**
-     * @return bool
-     */
-    public function isOpen(){
+    public function isOpen(): bool
+    {
         return $this->socket !== null;
     }
 
-
     /**
-     * send thrift
-     * @param $batch
-     * @return bool
+     * Send Thrift
+     *
+     * @throws Exception
      */
-    public function emitBatch($batch){
+    public function emitBatch(array $batch): bool
+    {
         $buildThrift = $this->agentClient->buildThrift($batch);
-        if(isset($buildThrift['len']) && $buildThrift['len'] && $this->isOpen()) {
+        if (isset($buildThrift['len']) && $buildThrift['len'] && $this->isOpen()) {
             $len = $buildThrift['len'];
-            $enitThrift = $buildThrift['thriftStr'];
-            $res = socket_sendto($this->socket, $enitThrift, $len, 0, $this->host, $this->post);
-            if($res === false) {
-                throw new \Exception("emit failse");
+            $emitThrift = (string)$buildThrift['thriftStr'];
+            $res = socket_sendto($this->socket, $emitThrift, $len, 0, $this->host, $this->post);
+            if (false === $res) {
+                throw new Exception(sprintf("Batch emit failed [THRIFT: %s]", $emitThrift));
             }
 
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
-
-    public function close(){
+    public function close()
+    {
         socket_close($this->socket);
         $this->socket = null;
     }

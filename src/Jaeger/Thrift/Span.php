@@ -1,64 +1,43 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
+declare(strict_types=1);
 
 namespace Jaeger\Thrift;
 
 use Thrift\Protocol\TProtocol;
 use Thrift\Type\TType;
 
-class Span implements TStruct{
-
+class Span implements TStruct
+{
     public static $thriftSpan = null;
 
     public static $tptl = null;
 
     public static $instance = null;
 
-    private function __construct()
+    public static function getInstance()
     {
-    }
-
-
-    private function __clone()
-    {
-    }
-
-
-    public static function getInstance(){
-        if(! (self::$instance instanceof self) )
-        {
+        if (!(self::$instance instanceof self)) {
             self::$instance = new self();
         }
+
         return self::$instance;
     }
 
-
-    public function setThriftSpan($thriftSpan = []){
+    public function setThriftSpan($thriftSpan = [])
+    {
         self::$thriftSpan = $thriftSpan;
     }
 
-
-    public function getThriftSpan(){
+    public function getThriftSpan()
+    {
         return self::$thriftSpan;
     }
-
 
     public function write(TProtocol $t)
     {
         self::$tptl = $t;
-        if(isset(self::$thriftSpan['wrote']) && self::$thriftSpan['wrote']){
+        if (isset(self::$thriftSpan['wrote']) && self::$thriftSpan['wrote']) {
             $tran = self::$tptl->getTransport();
             $tran->write(self::$thriftSpan['wrote']);
         } else {
@@ -66,12 +45,10 @@ class Span implements TStruct{
         }
     }
 
-
     public function read(TProtocol $t)
     {
         // TODO: Implement read() method.
     }
-
 
     private function handleSpan($span)
     {
@@ -125,7 +102,6 @@ class Span implements TStruct{
         self::$tptl->writeStructEnd();
     }
 
-
     private function handleSpanLogs($logs)
     {
         self::$tptl->writeFieldBegin('logs', TType::LST, 11);
@@ -138,7 +114,6 @@ class Span implements TStruct{
         self::$tptl->writeListEnd();
         self::$tptl->writeFieldEnd();
     }
-
 
     private function handleLog($log)
     {
@@ -154,7 +129,6 @@ class Span implements TStruct{
         self::$tptl->writeStructEnd();
     }
 
-
     private function handleLogFields($fields)
     {
         self::$tptl->writeFieldBegin('fields', TType::LST, 2);
@@ -167,7 +141,6 @@ class Span implements TStruct{
         self::$tptl->writeListEnd();
         self::$tptl->writeFieldEnd();
     }
-
 
     private function handleSpanTags($tags)
     {
@@ -182,7 +155,6 @@ class Span implements TStruct{
         self::$tptl->writeFieldEnd();
     }
 
-
     private function handleSpanRefes($references)
     {
         self::$tptl->writeFieldBegin('references', TType::LST, 6);
@@ -195,7 +167,6 @@ class Span implements TStruct{
         self::$tptl->writeListEnd();
         self::$tptl->writeFieldEnd();
     }
-
 
     private function handleSpanRefe($refe)
     {
