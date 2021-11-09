@@ -1,13 +1,17 @@
 {
-  "name":              "micro-module/jaeger-php",
-  "description":       "php client for jaeger",
-  "keywords":          ["jaeger","trace","opentracing"],
-  "license":           "Apache-2.0",
+  "name": "micro-module/jaeger-php",
+  "description": "php client for jaeger",
+  "keywords": [
+    "jaeger",
+    "trace",
+    "opentracing"
+  ],
+  "license": "Apache-2.0",
   "minimum-stability": "stable",
-  "require":           {
+  "require": {
     "php": "^7.1 || ^8.0",
-    "packaged/thrift" : "^0.13",
-    "opentracing/opentracing" : "^1.0"
+    "packaged/thrift": "^0.13",
+    "opentracing/opentracing": "1.0.0"
   },
   "authors": [
     {
@@ -15,7 +19,7 @@
       "email": "742161455@qq.com"
     }
   ],
-  "autoload":          {
+  "autoload": {
     "psr-4": {
       "Jaeger\\": "src\\Jaeger"
     },
