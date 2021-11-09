@@ -14,7 +14,7 @@ class UdpClient
 {
     private string $host;
 
-    private int $post;
+    private int $port;
 
     private $socket;
 
@@ -22,9 +22,9 @@ class UdpClient
 
     public function __construct($hostPost, AgentClient $agentClient)
     {
-        list($host, $post) = explode(":", $hostPost);
+        list($host, $port) = explode(":", $hostPost);
         $this->host = $host;
-        $this->post = (int)$post;
+        $this->port = (int)$port;
         $this->agentClient = $agentClient;
         $this->socket = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
     }
@@ -45,7 +45,7 @@ class UdpClient
         if (isset($buildThrift['len']) && $buildThrift['len'] && $this->isOpen()) {
             $len = $buildThrift['len'];
             $emitThrift = (string)$buildThrift['thriftStr'];
-            $res = socket_sendto($this->socket, $emitThrift, $len, 0, $this->host, $this->post);
+            $res = socket_sendto($this->socket, $emitThrift, $len, 0, $this->host, $this->port);
             if (false === $res) {
                 throw new Exception(sprintf("Batch emit failed [THRIFT: %s]", $emitThrift));
             }
