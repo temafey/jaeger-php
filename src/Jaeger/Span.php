@@ -1,126 +1,117 @@
 <?php
-/*
- * Copyright (c) 2019, The Jaeger Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- */
+
+declare(strict_types=1);
 
 namespace Jaeger;
 
+use OpenTracing\Span as SpanInterface;
+use OpenTracing\SpanContext as SpanContextInterface;
 
-class Span implements \OpenTracing\Span{
+class Span implements SpanInterface
+{
+    private string $operationName;
 
-    private $operationName = '';
+    public ?int $startTime;
 
-    public $startTime = '';
+    public ?int $finishTime;
 
-    public $finishTime = '';
+    public SpanContextInterface $spanContext;
 
-    public $spanKind = '';
+    public int $duration = 0;
 
-    public $spanContext = null;
+    public array $logs = [];
 
-    public $duration = 0;
+    public array $tags = [];
 
-    public $logs = [];
+    public array $references = [];
 
-    public $tags = [];
-
-    public $references = [];
-
-    public function __construct($operationName, \OpenTracing\SpanContext $spanContext, $references, $startTime = null){
+    public function __construct(
+        string $operationName,
+        SpanContextInterface $spanContext,
+        array $references,
+        ?int $startTime = null
+    ) {
         $this->operationName = $operationName;
-        $this->startTime = $startTime == null ? $this->microtimeToInt() : $startTime;
         $this->spanContext = $spanContext;
         $this->references = $references;
+        $this->startTime = $startTime == null ? $this->microtimeToInt() : $startTime;
     }
 
     /**
-     * @return string
+     * {@inheritdoc}
      */
-    public function getOperationName(){
+    public function getOperationName(): string
+    {
         return $this->operationName;
     }
 
     /**
-     * @return SpanContext
+     * {@inheritdoc}
      */
-    public function getContext(){
+    public function getContext(): SpanContextInterface
+    {
         return $this->spanContext;
     }
 
     /**
-     * @param float|int|\DateTimeInterface|null $finishTime if passing float or int
-     * it should represent the timestamp (including as many decimal places as you need)
-     * @param array $logRecords
-     * @return mixed
+     * {@inheritdoc}
      */
-    public function finish($finishTime = null, array $logRecords = []){
-        $this->finishTime = $finishTime == null ? $this->microtimeToInt() : $finishTime;
+    public function finish($finishTime = null): void
+    {
+        $this->finishTime = $finishTime === null ? $this->microtimeToInt() : $finishTime;
         $this->duration = $this->finishTime - $this->startTime;
     }
 
     /**
-     * @param string $newOperationName
+     * {@inheritdoc}
      */
-    public function overwriteOperationName($newOperationName){
+    public function overwriteOperationName(string $newOperationName): void
+    {
         $this->operationName = $newOperationName;
     }
 
-
-    public function setTag($key, $value){
+    /**
+     * {@inheritdoc}
+     */
+    public function setTag(string $key, $value): void
+    {
         $this->tags[$key] = $value;
     }
 
-
     /**
-     * Adds a log record to the span
-     *
-     * @param array $fields [key => val]
-     * @param int|float|\DateTimeInterface $timestamp
-     * @throws SpanAlreadyFinished if the span is already finished
+     * {@inheritdoc}
      */
-    public function log(array $fields = [], $timestamp = null){
-        $log['timestamp'] = $timestamp ? $timestamp : $this->microtimeToInt();
+    public function log(array $fields = [], $timestamp = null): void
+    {
+        $log['timestamp'] = $timestamp ?? $this->microtimeToInt();
         $log['fields'] = $fields;
         $this->logs[] = $log;
     }
 
     /**
-     * Adds a baggage item to the SpanContext which is immutable so it is required to use SpanContext::withBaggageItem
-     * to get a new one.
-     *
-     * @param string $key
-     * @param string $value
-     * @throws SpanAlreadyFinished if the span is already finished
+     * {@inheritdoc}
      */
-    public function addBaggageItem($key, $value){
+    public function addBaggageItem(string $key, string $value): void
+    {
         $this->log([
             'event' => 'baggage',
             'key' => $key,
             'value' => $value,
         ]);
-        return $this->spanContext->withBaggageItem($key, $value);
+
+        $this->spanContext = $this->spanContext->withBaggageItem($key, $value);
     }
 
     /**
-     * @param string $key
-     * @return string|null
+     * {@inheritdoc}
      */
-    public function getBaggageItem($key){
+    public function getBaggageItem(string $key): ?string
+    {
         return $this->spanContext->getBaggageItem($key);
     }
 
-
-    private function microtimeToInt(){
+    private function microtimeToInt(): int
+    {
         return intval(microtime(true) * 1000000);
     }
 }
